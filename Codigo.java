@@ -1,0 +1,68 @@
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+public class TransferenciaAPITest {
+    
+    private static final String BASE_URL = "https://api.banco.com/v1";
+    private static final String TRANSFER_ENDPOINT = "/transferencia";
+    
+    @Test
+    public void testTransferenciaExitosa() {
+        // Configurar datos de prueba
+        double saldoAnterior = 1000000.0;
+        double montoTransferencia = 20000.0;
+        double nuevoSaldoEsperado = saldoAnterior - montoTransferencia;
+        
+        // Crear cuerpo de la solicitud JSON
+        String requestBody = String.format(
+            "{\n" +
+            "  \"cuentaOrigen\": \"123456789\",\n" +
+            "  \"cuentaDestino\": \"987654321\",\n" +
+            "  \"monto\": %.2f,\n" +
+            "  \"moneda\": \"GS\",\n" +
+            "  \"concepto\": \"Transferencia prueba automatizada\",\n" +
+            "  \"token\": \"123456\"\n" +
+            "}", montoTransferencia);
+        
+        // Configurar y ejecutar la solicitud POST
+        RequestSpecification request = RestAssured.given();
+        request.header("Content-Type", "application/json");
+        request.header("Authorization", "Bearer token_autenticacion");
+        request.body(requestBody);
+        
+        Response response = request.post(BASE_URL + TRANSFER_ENDPOINT);
+        
+        // 1. Verificar código de estado HTTP (200/201)
+        int statusCode = response.getStatusCode();
+        assertTrue("El código de estado debe ser 200 o 201", 
+                   statusCode == 200 || statusCode == 201);
+        
+        // Extraer datos de la respuesta
+        String responseBody = response.getBody().asString();
+        double nuevoSaldoActual = response.jsonPath().getDouble("saldoNuevo");
+        String idTransaccion = response.jsonPath().getString("idTransaccion");
+        String estado = response.jsonPath().getString("estado");
+        
+        // 2. Aserción para verificar descuento correcto del saldo
+        assertEquals("El saldo no se descontó correctamente", 
+                     nuevoSaldoEsperado, nuevoSaldoActual, 0.01);
+        
+        // Aserciones adicionales para validación completa
+        assertNotNull("La transacción debe tener un ID", idTransaccion);
+        assertEquals("El estado debe ser 'COMPLETADO'", "COMPLETADO", estado);
+        
+        // Verificar que la transacción aparece en el historial
+        Response historialResponse = RestAssured.given()
+            .header("Authorization", "Bearer token_autenticacion")
+            .get(BASE_URL + "/cuentas/123456789/transacciones");
+        
+        boolean transaccionEnHistorial = historialResponse.getBody().asString()
+            .contains(idTransaccion);
+        
+        assertTrue("La transacción debe aparecer en el historial", 
+                   transaccionEnHistorial);
+    }
+}
