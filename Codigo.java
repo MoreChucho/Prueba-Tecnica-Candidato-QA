@@ -23,7 +23,7 @@ public class TransferenciaAPITest {
             "  \"cuentaDestino\": \"987654321\",\n" +
             "  \"monto\": %.2f,\n" +
             "  \"moneda\": \"GS\",\n" +
-            "  \"concepto\": \"Transferencia prueba automatizada\",\n" +
+            "  \"concepto\": \"Transferencia prueba\",\n" +
             "  \"token\": \"123456\"\n" +
             "}", montoTransferencia);
         
@@ -37,7 +37,7 @@ public class TransferenciaAPITest {
         
         // 1. Verificar código de estado HTTP (200/201)
         int statusCode = response.getStatusCode();
-        assertTrue("El código de estado debe ser 200 o 201", 
+        assertTrue("Rango código 200 o 201", 
                    statusCode == 200 || statusCode == 201);
         
         // Extraer datos de la respuesta
@@ -51,8 +51,8 @@ public class TransferenciaAPITest {
                      nuevoSaldoEsperado, nuevoSaldoActual, 0.01);
         
         // Aserciones adicionales para validación completa
-        assertNotNull("La transacción debe tener un ID", idTransaccion);
-        assertEquals("El estado debe ser 'COMPLETADO'", "COMPLETADO", estado);
+        assertNotNull("Transacción ID", idTransaccion);
+        assertEquals("Estado 'COMPLETADO'", "COMPLETADO", estado);
         
         // Verificar que la transacción aparece en el historial
         Response historialResponse = RestAssured.given()
@@ -62,7 +62,7 @@ public class TransferenciaAPITest {
         boolean transaccionEnHistorial = historialResponse.getBody().asString()
             .contains(idTransaccion);
         
-        assertTrue("La transacción debe aparecer en el historial", 
+        assertTrue("Historial de transacción", 
                    transaccionEnHistorial);
     }
 }
